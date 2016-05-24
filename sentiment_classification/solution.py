@@ -70,15 +70,8 @@ def print_classified(classifier, embeddings):
     print(classifier.predict(extract_features(testTweet3, embeddings)))
 #end
 
-#start cross_validate
-def cross_validate():
-    # Cross Validation of Results 
-    # TBC
-    print('not implemented')
-#end
-
 def main():
-    global featureList, stop_words, embeddings
+    global featureList, embeddings
     
     word_to_id = parse_vocabulary('vocab.pkl')
     
