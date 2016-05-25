@@ -1,5 +1,5 @@
-
 from sklearn import svm
+from sklearn import cross_validation
 import numpy as np
 import pickle
 
@@ -33,15 +33,14 @@ def get_word_vector(word, embeddings):
 
 #start extract_features
 def extract_features(tweet, embeddings):
-    #print(tweet)
     tweet_words = set(tweet)
-    #print('tweet_words size: %s', len(tweet_words))
+    
     features = np.array(embeddings.shape[0])
     word_count = 0
     for word in tweet_words:
         # get word from embeddings
         feature = get_word_vector(word, embeddings)
-        #print(feature)
+        
         if feature.size is 0: # If feature is empty, skip iteration
             continue
             
@@ -71,14 +70,13 @@ def print_classified(classifier, embeddings):
 #end
 
 #start cross_validate
-def cross_validate():
-    # Cross Validation of Results 
-    # TBC
-    print('not implemented')
+def cross_validate(classifier, features_test, labels_test):
+    # Cross Validation of Results
+    return classifier.score(features_test, labels_test)
 #end
 
 def main():
-    global featureList, stop_words, embeddings
+    global featureList, embeddings
     
     word_to_id = parse_vocabulary('vocab.pkl')
     
@@ -91,27 +89,32 @@ def main():
     
     # Preparing feature set for classifier
     training_set = []
-    label_set = []
+    labels = []
     
     for row in neg_tweets:
         sentiment = 'negative'
         tweet = row.decode('utf-8')
         features = np.array((extract_features(tweet, embeddings))).tolist()
         training_set.append(features)
-        label_set.append(sentiment)
+        labels.append(sentiment)
     for row in pos_tweets:
         sentiment = 'positive'
         tweet = row.decode('utf-8')
         features = np.array((extract_features(tweet, embeddings))).tolist()
         training_set.append(features)
-        label_set.append(sentiment)
+        labels.append(sentiment)
     #end loops
+    
+    # Split dataset for cross_validation
+    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+        training_set, labels, test_size=0.4, random_state=0)
     
     # Train classifier
     classifier = svm.SVC()
-    classifier.fit(training_set, label_set)
+    classifier.fit(X_train, y_train)
     
     print_classified(classifier, embeddings)
+    print("Accuracy of classifier: %s" % cross_validate(classifier, X_test, y_test))
     
     
 if __name__ == '__main__':
