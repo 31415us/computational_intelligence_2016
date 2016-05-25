@@ -1,4 +1,4 @@
-from sklearn import svm
+from sklearn import svm, linear_model
 from sklearn import cross_validation
 import numpy as np
 import pickle
@@ -78,12 +78,10 @@ def cross_validate(classifier, features_test, labels_test):
 def main():
     global featureList, embeddings
     
-    word_to_id = parse_vocabulary('vocab.pkl')
-    
+    word_to_id = parse_vocabulary('vocab.pkl')  
     embeddings = np.load('embeddings.npy')
     
     #Read the tweets and process them
-    tweets = []
     pos_tweets = open('train_pos_cut.txt', 'rb')
     neg_tweets = open('train_neg_cut.txt', 'rb')
     
@@ -109,13 +107,19 @@ def main():
     X_train, X_test, y_train, y_test = cross_validation.train_test_split(
         training_set, labels, test_size=0.4, random_state=0)
     
-    # Train classifier
+    # Train SVM classifier
     classifier = svm.SVC()
     classifier.fit(X_train, y_train)
     
     print_classified(classifier, embeddings)
-    print("Accuracy of classifier: %s" % cross_validate(classifier, X_test, y_test))
+    print("Accuracy of SVM %s" % cross_validate(classifier, X_test, y_test))
     
+    # Traing logistic regression classifier
+    classifier = linear_model.LogisticRegression()
+    classifier.fit(X_train, y_train)
     
+    print_classified(classifier, embeddings)
+    print("Accuracy of log regression: %s" % cross_validate(classifier, X_test, y_test))
+      
 if __name__ == '__main__':
     main()
