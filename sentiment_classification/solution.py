@@ -116,7 +116,7 @@ def cross_validate(classifier, features_test, labels_test):
 #end
 
 def main():
-    word_to_id = parse_vocabulary('vocab.pkl')
+    parse_vocabulary('vocab.pkl')
     embeddings = np.load('embeddings.npy')
 
     # Read the tweets and prepare them for classifier
