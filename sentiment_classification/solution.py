@@ -69,15 +69,12 @@ def print_classified(classifier, embeddings):
     print(classifier.predict(extract_features(testTweet3, embeddings)))
 #end
 
-<<<<<<< HEAD
 #start cross_validate
 def cross_validate(classifier, features_test, labels_test):
     # Cross Validation of Results
     return classifier.score(features_test, labels_test)
 #end
 
-=======
->>>>>>> d61ff6ebaf71dc52f8932964d383436a4d73db8a
 def main():
     global featureList, embeddings
     
