@@ -1,10 +1,15 @@
 from sklearn import svm, linear_model
 from sklearn import cross_validation
+
+# Tf-Idf
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
 import numpy as np
 import pickle
 
-# initialise globals
-featureList = []
+# Initialise globals
+tf_idf = 1 # true/false if tf-idf is used
 word_to_id = {}
 
 #start parse_vocabulary
@@ -17,6 +22,28 @@ def parse_vocabulary(file):
         word_to_id[w] = count
         count += 1
 #end
+
+#start read_training_set(pos_tweets, neg_tweets)
+def read_training_set(pos_tweets, neg_tweets, embeddings):
+    training_set, labels = [], []
+    if tf_idf:
+        for tweet in pos_tweets:
+            training_set.append(tweet.strip())
+            labels.append('positive')
+        for tweet in neg_tweets:
+            training_set.append(tweet.strip())
+            labels.append('negative')
+    else:
+        for tweet in neg_tweets:
+            features = np.array((extract_features(tweet, embeddings))).tolist()
+            training_set.append(features)
+            labels.append('negative')
+        for tweet in pos_tweets:
+            features = np.array((extract_features(tweet, embeddings))).tolist()
+            training_set.append(features)
+            labels.append('positive')
+            
+    return training_set, labels
 
 #start get_word_vector
 def get_word_vector(word, embeddings):
@@ -69,6 +96,20 @@ def print_classified(classifier, embeddings):
     print(classifier.predict(extract_features(testTweet3, embeddings)))
 #end
 
+#start print_classified_with_tfidf
+def print_classified_with_tfidf(classifier, vectorizer):
+    # Extract all tweets to classify
+    testTweet = "<user> yep gonna watch it now"
+    testTweet1 = "i'm glad this day is ending"
+    testTweet2 = "why is she so perfect <url>"
+    testTweet3 = "why do i get treated like this"
+
+    print(classifier.predict(vectorizer.transform([testTweet])))
+    print(classifier.predict(vectorizer.transform([testTweet1])))
+    print(classifier.predict(vectorizer.transform([testTweet2])))
+    print(classifier.predict(vectorizer.transform([testTweet3])))
+#end
+
 #start cross_validate
 def cross_validate(classifier, features_test, labels_test):
     # Cross Validation of Results
@@ -76,50 +117,39 @@ def cross_validate(classifier, features_test, labels_test):
 #end
 
 def main():
-    global featureList, embeddings
-    
     word_to_id = parse_vocabulary('vocab.pkl')  
     embeddings = np.load('embeddings.npy')
     
-    #Read the tweets and process them
-    pos_tweets = open('train_pos_cut.txt', 'rb')
-    neg_tweets = open('train_neg_cut.txt', 'rb')
-    
-    # Preparing feature set for classifier
-    training_set = []
-    labels = []
-    
-    for row in neg_tweets:
-        sentiment = 'negative'
-        tweet = row.decode('utf-8')
-        features = np.array((extract_features(tweet, embeddings))).tolist()
-        training_set.append(features)
-        labels.append(sentiment)
-    for row in pos_tweets:
-        sentiment = 'positive'
-        tweet = row.decode('utf-8')
-        features = np.array((extract_features(tweet, embeddings))).tolist()
-        training_set.append(features)
-        labels.append(sentiment)
-    #end loops
+    # Read the tweets and prepare them for classifier
+    pos_tweets = open('train_pos_cut.txt', 'r')
+    neg_tweets = open('train_neg_cut.txt', 'r')
+    training_set, labels = read_training_set(pos_tweets, neg_tweets, embeddings)
+      
+    if tf_idf: # If Tf-Idf is used, vectorize the data we have
+        vectorizer = TfidfVectorizer()
+        training_set = vectorizer.fit_transform(training_set)
     
     # Split dataset for cross_validation
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
+    training_set, test_set, training_set_labels, test_set_labels = cross_validation.train_test_split(
         training_set, labels, test_size=0.4, random_state=0)
     
-    # Train SVM classifier
+    ###
+    # Train SVM classifier & print the results
+    ###
     classifier = svm.SVC()
-    classifier.fit(X_train, y_train)
+    classifier.fit(training_set, training_set_labels)
     
-    print_classified(classifier, embeddings)
-    print("Accuracy of SVM %s" % cross_validate(classifier, X_test, y_test))
+    print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)   
+    print("Accuracy of SVM %s" % cross_validate(classifier, test_set, test_set_labels))
     
-    # Traing logistic regression classifier
+    ###
+    # Traing logistic regression classifier  & print the results
+    ###
     classifier = linear_model.LogisticRegression()
-    classifier.fit(X_train, y_train)
+    classifier.fit(training_set, training_set_labels)
     
-    print_classified(classifier, embeddings)
-    print("Accuracy of log regression: %s" % cross_validate(classifier, X_test, y_test))
-      
+    print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
+    print("Accuracy of log regression: %s" % cross_validate(classifier, test_set, test_set_labels))
+
 if __name__ == '__main__':
     main()
