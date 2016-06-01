@@ -109,10 +109,48 @@ def print_classified_with_tfidf(classifier, vectorizer):
     print(classifier.predict(vectorizer.transform([testTweet3])))
 #end
 
+#start predict_classification
+def predict_classification(classifier, vectorizer, embeddings, tweets):
+    # Classify tweets
+    if vectorizer != 0: # If tf_idf was used
+        print(tweets[0])
+        return classifier.predict(vectorizer.transform(tweets))
+    else:
+        feature_list = []
+        for tweet in tweets:
+            feature_list.append(extract_features(tweet, embeddings))
+        
+        return classifier.predict(feature_list)
+#end
+
 #start cross_validate
 def cross_validate(classifier, features_test, labels_test):
     # Cross Validation of Results
     return cross_val_score(classifier, features_test, labels_test, cv=5)
+#end
+
+#start classify_dataset
+def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, vectorizer, tfidf):
+    csvfile = open(path_to_export, 'w')
+    classified_tweets = []
+    
+    with open(path_to_dataset, 'r') as dataset:
+        tweets = []
+        for line in dataset:
+            id, tweet = line.split(',', 1)
+            tweets.append(tweet)
+    
+    if vectorizer != 0:
+        classified_tweets = predict_classification(classifier, vectorizer, 0, tweets)
+    else:
+        classified_tweets = predict_classification(classifier, 0, embeddings, tweets)
+    
+    id = 1
+    for prediction in classified_tweets:
+        csvfile.write(str(id) + ',' + prediction + '\n')
+        id += 1
+        
+    csvfile.close()
 #end
 
 def main():
@@ -129,7 +167,6 @@ def main():
         training_set = vectorizer.fit_transform(training_set)
 
     # Split dataset for cross_validation
-
     """
     training_set, test_set, training_set_labels, test_set_labels = cross_validation.train_test_split(
         training_set, labels, test_size=0.4, random_state=0)
@@ -138,24 +175,25 @@ def main():
     ###
     # Train SVM classifier & print the results
     ###
-
     classifier = svm.SVC()
-#    classifier.fit(training_set, training_set_labels)
-#    print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
-    scores_svm = cross_validate(classifier, training_set, labels)
-    print("Accuracy of SVM %s" % scores_svm)
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores_svm.mean(), scores_svm.std() * 2))
+    classifier.fit(training_set, labels)
+    #print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
+    #scores_svm = cross_validate(classifier, training_set, labels)
+    #print("Accuracy of SVM %s" % scores_svm)
+    #print("Accuracy: %0.2f (+/- %0.2f)" % (scores_svm.mean(), scores_svm.std() * 2))
 
     ###
     # Traing logistic regression classifier  & print the results
     ###
 
     classifier = linear_model.LogisticRegression()
-#    classifier.fit(training_set, training_set_labels)
-#    print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
-    scores_logReg = cross_validate(classifier, training_set, labels)
-    print("Accuracy of log regression: %s" % scores_logReg)
-    print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
+    classifier.fit(training_set, labels)
+    #print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
+    #scores_logReg = cross_validate(classifier, training_set, labels)
+    #print("Accuracy of log regression: %s" % scores_logReg)
+    #print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
+
+    classify_dataset('test_data.txt', 'classified_test_data.csv', classifier, embeddings, vectorizer, tf_idf)
 
 if __name__ == '__main__':
     main()
