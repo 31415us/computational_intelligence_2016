@@ -128,12 +128,12 @@ def main():
     except IndexError:
         print('Tf-Idf disabled')
     
-    parse_vocabulary('vocab.pkl')
-    embeddings = np.load('embeddings.npy')
+    parse_vocabulary('assets/vocab.pkl')
+    embeddings = np.load('assets/embeddings.npy')
 
     # Read the tweets and prepare them for classifier
-    pos_tweets = open('train_pos_1perc.txt', mode='r', encoding="utf8")
-    neg_tweets = open('train_neg_1perc.txt', mode='r', encoding="utf8")
+    pos_tweets = open('assets/train_pos_1perc.txt', mode='r', encoding="utf8")
+    neg_tweets = open('assets/train_neg_1perc.txt', mode='r', encoding="utf8")
     training_set, labels = read_training_set(pos_tweets, neg_tweets, []) if tf_idf == 1 else read_training_set(pos_tweets, neg_tweets, embeddings) 
     
     vectorizer = 0
@@ -162,7 +162,7 @@ def main():
     print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
 
     # Classify the dataset given to CSV file
-    classify_dataset('test_data.txt', 'classified_test_data.csv', classifier, embeddings, vectorizer)
+    classify_dataset('assets/test_data.txt', 'submissions/classified_test_data.csv', classifier, embeddings, vectorizer)
 
 if __name__ == '__main__':
     main()
