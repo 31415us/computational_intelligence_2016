@@ -4,9 +4,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 import numpy as np
 import pickle
+import sys
 
 # Initialise globals
-tf_idf = 1 # true/false if tf-idf is used
 word_to_id = {}
 
 #start parse_vocabulary
@@ -22,22 +22,23 @@ def parse_vocabulary(file):
 #start read_training_set(pos_tweets, neg_tweets)
 def read_training_set(pos_tweets, neg_tweets, embeddings):
     training_set, labels = [], []
-    if tf_idf:
+    
+    if len(embeddings) == 0:
         for tweet in pos_tweets:
             training_set.append(tweet.strip())
-            labels.append('positive')
+            labels.append('1')
         for tweet in neg_tweets:
             training_set.append(tweet.strip())
-            labels.append('negative')
+            labels.append('-1')
     else:
         for tweet in neg_tweets:
             features = np.array((extract_features(tweet, embeddings))).tolist()
             training_set.append(features)
-            labels.append('negative')
+            labels.append('-1')
         for tweet in pos_tweets:
             features = np.array((extract_features(tweet, embeddings))).tolist()
             training_set.append(features)
-            labels.append('positive')
+            labels.append('1')
             
     return training_set, labels
 #end
@@ -74,39 +75,10 @@ def extract_features(tweet, embeddings):
     return features
 #end
 
-#start print_classified
-def print_classified(classifier, embeddings):
-    # Extract all tweets to classify
-    testTweet = "<user> yep gonna watch it now"
-    testTweet1 = "i'm glad this day is ending"
-    testTweet2 = "why is she so perfect <url>"
-    testTweet3 = "why do i get treated like this"
-
-    print(classifier.predict(extract_features(testTweet, embeddings)))
-    print(classifier.predict(extract_features(testTweet1, embeddings)))
-    print(classifier.predict(extract_features(testTweet2, embeddings)))
-    print(classifier.predict(extract_features(testTweet3, embeddings)))
-#end
-
-#start print_classified_with_tfidf
-def print_classified_with_tfidf(classifier, vectorizer):
-    # Extract all tweets to classify
-    testTweet = "<user> yep gonna watch it now"
-    testTweet1 = "i'm glad this day is ending"
-    testTweet2 = "why is she so perfect <url>"
-    testTweet3 = "why do i get treated like this"
-
-    print(classifier.predict(vectorizer.transform([testTweet])))
-    print(classifier.predict(vectorizer.transform([testTweet1])))
-    print(classifier.predict(vectorizer.transform([testTweet2])))
-    print(classifier.predict(vectorizer.transform([testTweet3])))
-#end
-
 #start predict_classification
 def predict_classification(classifier, vectorizer, embeddings, tweets):
     # Classify tweets
     if vectorizer != 0: # If tf_idf was used
-        print(tweets[0])
         return classifier.predict(vectorizer.transform(tweets))
     else:
         feature_list = []
@@ -123,7 +95,7 @@ def cross_validate(classifier, features_test, labels_test):
 #end
 
 #start classify_dataset
-def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, vectorizer, tfidf):
+def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, vectorizer):
     csvfile = open(path_to_export, 'w')
     classified_tweets = []
     
@@ -139,6 +111,7 @@ def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, ve
         classified_tweets = predict_classification(classifier, 0, embeddings, tweets)
     
     id = 1
+    csvfile.write('Id,Prediction\n')
     for prediction in classified_tweets:
         csvfile.write(str(id) + ',' + prediction + '\n')
         id += 1
@@ -147,53 +120,49 @@ def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, ve
 #end
 
 def main():
+    tf_idf = 0 # true/false if tf-idf is used
+    try:
+        if (sys.argv[1] == '-tfidf'):
+            tf_idf = 1
+            print('Tf-Idf enabled')
+    except IndexError:
+        print('Tf-Idf disabled')
+    
     parse_vocabulary('vocab.pkl')
     embeddings = np.load('embeddings.npy')
 
     # Read the tweets and prepare them for classifier
-    pos_tweets = open('train_pos_10perc.txt', 'r')
-    neg_tweets = open('train_neg_10perc.txt', 'r')
-    training_set, labels = read_training_set(pos_tweets, neg_tweets, embeddings)
-
+    pos_tweets = open('train_pos_1perc.txt', mode='r', encoding="utf8")
+    neg_tweets = open('train_neg_1perc.txt', mode='r', encoding="utf8")
+    training_set, labels = read_training_set(pos_tweets, neg_tweets, []) if tf_idf == 1 else read_training_set(pos_tweets, neg_tweets, embeddings) 
+    
+    vectorizer = 0
     if tf_idf: # If Tf-Idf is used, vectorize the data we have
         vectorizer = TfidfVectorizer()
         training_set = vectorizer.fit_transform(training_set)
-
-    # Split dataset for cross_validation
-    """
-    training_set, test_set, training_set_labels, test_set_labels = cross_validation.train_test_split(
-        training_set, labels, test_size=0.4, random_state=0)
-    """
-
+        
     ###
-    # Train SVM classifier & print the results
+    # 1. Train linear SVM classifier & print the results
     ###
-    classifier = svm.SVC()
-    classifier.fit(training_set, labels)
-    #print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
+    #classifier = svm.LinearSVC()
+    #classifier.fit(training_set, training_set_labels)
+    
     #scores_svm = cross_validate(classifier, training_set, labels)
     #print("Accuracy of SVM %s" % scores_svm)
     #print("Accuracy: %0.2f (+/- %0.2f)" % (scores_svm.mean(), scores_svm.std() * 2))
 
-    #training_set, test_set, training_set_labels, test_set_labels = cross_validation.train_test_split(training_set, labels, test_size=0.4, random_state=0)
-
-    # Train SVM classifier & print the results
-    classifier = svm.LinearSVC()
-    classifier.fit(training_set, training_set_labels)
-    #print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
-    #scores_svm = cross_validate(classifier, training_set, labels)
-    #print("Accuracy of SVM %s" % scores_svm)
-    #print("Accuracy: %0.2f (+/- %0.2f)" % (scores_svm.mean(), scores_svm.std() * 2))
-
-    # Traing logistic regression classifier  & print the results
+    ###
+    # 2. Traing logistic regression classifier  & print the results
+    ###
     classifier = linear_model.LogisticRegression()
     classifier.fit(training_set, labels)
-    #print_classified_with_tfidf(classifier, vectorizer) if tf_idf else print_classified(classifier, embeddings)
-    #scores_logReg = cross_validate(classifier, training_set, labels)
-    #print("Accuracy of log regression: %s" % scores_logReg)
-    #print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
+    
+    scores_logReg = cross_validate(classifier, training_set, labels)
+    print("Accuracy of log regression: %s" % scores_logReg)
+    print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
 
-    classify_dataset('test_data.txt', 'classified_test_data.csv', classifier, embeddings, vectorizer, tf_idf)
+    # Classify the dataset given to CSV file
+    classify_dataset('test_data.txt', 'classified_test_data.csv', classifier, embeddings, vectorizer)
 
 if __name__ == '__main__':
     main()
