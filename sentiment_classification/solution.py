@@ -6,21 +6,15 @@ import numpy as np
 import pickle
 import sys
 
-# Initialise globals
-word_to_id = {}
-
 #start parse_vocabulary
 def parse_vocabulary(file):
     with open(file, 'rb') as f:
         vocab = pickle.load(f)
-    count = 0
-    for w in vocab:
-        word_to_id[w] = count
-        count += 1
+    return vocab
 #end
 
 #start read_training_set(pos_tweets, neg_tweets)
-def read_training_set(pos_tweets, neg_tweets, embeddings):
+def read_training_set(pos_tweets, neg_tweets, embeddings, id_map):
     training_set, labels = [], []
     
     if len(embeddings) == 0:
@@ -32,11 +26,11 @@ def read_training_set(pos_tweets, neg_tweets, embeddings):
             labels.append('-1')
     else:
         for tweet in neg_tweets:
-            features = np.array((extract_features(tweet, embeddings))).tolist()
+            features = np.array((extract_features(tweet, embeddings, id_map))).tolist()
             training_set.append(features)
             labels.append('-1')
         for tweet in pos_tweets:
-            features = np.array((extract_features(tweet, embeddings))).tolist()
+            features = np.array((extract_features(tweet, embeddings, id_map))).tolist()
             training_set.append(features)
             labels.append('1')
             
@@ -44,25 +38,25 @@ def read_training_set(pos_tweets, neg_tweets, embeddings):
 #end
 
 #start get_word_vector
-def get_word_vector(word, embeddings):
+def get_word_vector(word, embeddings, id_map):
     # Returns word vector from generated embeddings
     word_vector = np.array([])
     # If word exists in word_to_id dictionary, then grab the corresponding embeddings vector
-    if word in word_to_id:
-        embd_index = word_to_id[word]
+    if word in id_map:
+        embd_index = id_map[word]
         word_vector = embeddings[embd_index,:]
         
     return word_vector
 #end
 
 #start extract_features
-def extract_features(tweet, embeddings):
+def extract_features(tweet, embeddings, id_map):
     tweet_words = set(tweet)
     features = np.array(embeddings.shape[0])
     word_count = 0
     for word in tweet_words:
         # get word from embeddings
-        feature = get_word_vector(word, embeddings)
+        feature = get_word_vector(word, embeddings, id_map)
         if feature.size is 0: # If feature is empty, skip iteration
             continue
         # sum with others
@@ -76,14 +70,14 @@ def extract_features(tweet, embeddings):
 #end
 
 #start predict_classification
-def predict_classification(classifier, vectorizer, embeddings, tweets):
+def predict_classification(classifier, vectorizer, embeddings, id_map, tweets):
     # Classify tweets
     if vectorizer != 0: # If tf_idf was used
         return classifier.predict(vectorizer.transform(tweets))
     else:
         feature_list = []
         for tweet in tweets:
-            feature_list.append(extract_features(tweet, embeddings))
+            feature_list.append(extract_features(tweet, embeddings, id_map))
         
         return classifier.predict(feature_list)
 #end
@@ -95,7 +89,7 @@ def cross_validate(classifier, features_test, labels_test):
 #end
 
 #start classify_dataset
-def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, vectorizer):
+def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, vectorizer, id_map):
     csvfile = open(path_to_export, 'w')
     classified_tweets = []
     
@@ -106,9 +100,9 @@ def classify_dataset(path_to_dataset, path_to_export, classifier, embeddings, ve
             tweets.append(tweet)
     
     if vectorizer != 0:
-        classified_tweets = predict_classification(classifier, vectorizer, 0, tweets)
+        classified_tweets = predict_classification(classifier, vectorizer, 0, id_map, tweets)
     else:
-        classified_tweets = predict_classification(classifier, 0, embeddings, tweets)
+        classified_tweets = predict_classification(classifier, 0, embeddings, id_map, tweets)
     
     id = 1
     csvfile.write('Id,Prediction\n')
@@ -128,13 +122,14 @@ def main():
     except IndexError:
         print('Tf-Idf disabled')
     
-    parse_vocabulary('assets/vocab.pkl')
+    id_map = parse_vocabulary('assets/vocab.pkl')
     embeddings = np.load('assets/embeddings.npy')
 
     # Read the tweets and prepare them for classifier
     pos_tweets = open('assets/train_pos_1perc.txt', mode='r', encoding="utf8")
     neg_tweets = open('assets/train_neg_1perc.txt', mode='r', encoding="utf8")
-    training_set, labels = read_training_set(pos_tweets, neg_tweets, []) if tf_idf == 1 else read_training_set(pos_tweets, neg_tweets, embeddings) 
+    training_set, labels = \
+        read_training_set(pos_tweets, neg_tweets, [], id_map) if tf_idf == 1 else read_training_set(pos_tweets, neg_tweets, embeddings, id_map) 
     
     vectorizer = 0
     if tf_idf: # If Tf-Idf is used, vectorize the data we have
@@ -162,7 +157,7 @@ def main():
     print("Acuracy: %0.2f (+/- %0.2f)" % (scores_logReg.mean(), scores_logReg.std() * 2))
 
     # Classify the dataset given to CSV file
-    classify_dataset('assets/test_data.txt', 'submissions/classified_test_data.csv', classifier, embeddings, vectorizer)
+    classify_dataset('assets/test_data.txt', 'submissions/classified_test_data.csv', classifier, embeddings, vectorizer, id_map)
 
 if __name__ == '__main__':
     main()
