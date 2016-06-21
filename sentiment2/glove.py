@@ -8,7 +8,7 @@ from preprocess import load_pickled
 class GloVe(object):
 
     def __init__(self, cooc, embedding_dim=128):
-        self.cooc = cooc
+        self.cooc = cooc.tocsc()
         self.embedding_dim = embedding_dim
         self.xs = np.random.normal(size=(self.cooc.shape[0], self.embedding_dim))
         self.ys = np.random.normal(size=(self.cooc.shape[1], self.embedding_dim))
