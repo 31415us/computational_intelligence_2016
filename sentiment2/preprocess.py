@@ -7,6 +7,18 @@ import snowballstemmer
 
 import pickle
 
+class StopWordFilter(object):
+
+    def __init__(self, stopword_file):
+        self.stopwords = set()
+        with open(stopword_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                for stopword in line.split():
+                    self.stopwords.add(stopword)
+
+    def filter(self, word_list):
+        return [word for word in word_list if word not in self.stopwords]
+
 class MemoizedStemmer(object):
 
     def __init__(self):
@@ -26,50 +38,51 @@ class MemoizedStemmer(object):
 class VocabularyBuilder(object):
 
     def __init__(self):
-        self.current_id = 0
-        self.vocab = {}
-        self.inv_vocab = {}
+        self.word_counts = {}
 
     def add(self, word):
-        if self.vocab.get(word) is None:
-            self.vocab[word] = self.current_id
-            self.inv_vocab[self.current_id] = word
+        if self.word_counts.get(word) is None:
+            self.word_counts[word] = 1
+        else:
+            self.word_counts[word] += 1
 
-            self.current_id += 1
+    def build(self, cutoff=10):
+        word_id = 0
 
-    def add_file(self, filename):
-        with open(filename, 'r', encoding='utf-8') as f:
-            for line in f:
-                for word in line.split():
-                        self.add(word)
+        vocab = {}
+        inv_vocab = {}
 
-def build_vocab(infiles, voc_out, inv_voc_out):
+        for word in self.word_counts:
+            if self.word_counts[word] >= cutoff:
+                vocab[word] = word_id
+                inv_vocab[word_id] = word
+                word_id += 1
+
+        return vocab, inv_vocab
+
+
+def build_vocab(infiles, stopword_file, voc_out, inv_voc_out, cutoff=10):
 
     stemmer = MemoizedStemmer()
+    stopwords = StopWordFilter(stopword_file)
     vb = VocabularyBuilder()
 
     for filename in infiles:
         with open(filename, 'r', encoding='utf-8') as f:
             for line in f:
-                for word in line.split():
+                words = line.split()
+                filtered = stopwords.filter(words)
+                for word in filtered:
                     stemmed = stemmer.stem(word)
                     vb.add(stemmed)
 
+    vocab, inv_vocab = vb.build(cutoff)
+
     with open(voc_out, 'wb') as f:
-        pickle.dump(vb.vocab, f, protocol=-1)
+        pickle.dump(vocab, f, protocol=-1)
 
     with open(inv_voc_out, 'wb') as f:
-        pickle.dump(vb.inv_vocab, f, protocol=-1)
-
-def load_vocab(vocab_file, inv_vocab_file):
-
-    with open(vocab_file, 'rb') as f:
-        vocab = pickle.load(f)
-
-    with open(inv_vocab_file, 'rb') as f:
-        inv_vocab = pickle.load(f)
-
-    return vocab, inv_vocab
+        pickle.dump(inv_vocab, f, protocol=-1)
 
 def build_cooc(infiles, vocab, cooc_out):
 
@@ -83,7 +96,7 @@ def build_cooc(infiles, vocab, cooc_out):
         with open(filename, 'r', encoding='utf-8') as f:
             for line in f:
                 stemmed = [stemmer.stem(w) for w in line.split()]
-                tokens = [vocab[w] for w in stemmed]
+                tokens = [vocab.get(w) for w in stemmed if vocab.get(w) is not None]
 
                 for t1 in tokens:
                     for t2 in tokens:
@@ -102,7 +115,4 @@ def load_pickled(infile):
         result = pickle.load(f)
 
     return result
-
-def tweet_to_seq(words, vocab):
-    return [vocab[word] for word in words]
 
