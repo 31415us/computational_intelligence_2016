@@ -4,12 +4,18 @@ import numpy as np
 from collections import defaultdict
 
 class Sample(object):
-    def __init__(self, vec, label):
-        self.vec = vec
+    def __init__(self, tfidf, lda, glove, label):
+        self.tfidf = tfidf
+        self.lda = lda
+        self.glove = glove
         self.label = label
 
     def kernel(self, b):
-        return np.dot(self.vec, b.vec)
+        tfidfdot = np.dot(self.tfidf.todense(), b.tfidf.todense().T)
+        ldadot = np.dot(self.lda, b.lda)
+        glovedot = np.dot(self.glove, b.glove)
+
+        return tfidfdot + ldadot + glovedot
 
 class KernelCache(object):
     
@@ -73,9 +79,7 @@ class LASVM(object):
             self.add_support_vector(sample)
 
     def update(self, samples):
-        count = 0
         for sample in samples:
-            count += 1
             self.lasvm_process(sample)
             self.lasvm_reprocess()
 
