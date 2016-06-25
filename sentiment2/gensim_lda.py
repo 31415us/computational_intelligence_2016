@@ -42,11 +42,19 @@ def list_to_bow(word_ids):
 
 class LdaLoader(object):
 
-    def __init__(self, lda_file):
+    def __init__(self, lda_file, num_topics):
         self.lda = LdaModel.load(lda_file)
+        self.num_topics = num_topics
 
     def topic_vector(self, word_ids):
-        return self.lda[list_to_bow(word_ids)]
+        topic_mix = self.lda[list_to_bow(word_ids)]
+
+        res = np.zeros(self.num_topics)
+
+        for ix, val in topic_mix:
+            res[ix] = val
+
+        return res
 
 def main(vocab_file, inv_vocab_file, infiles):
     vocab = load_pickled(vocab_file)
