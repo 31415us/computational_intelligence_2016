@@ -1,6 +1,10 @@
 
 import numpy as np
 
+from sklearn.linear_model import SGDClassifier
+
+from scipy import sparse
+
 from tfidf import TfIdf
 from gensim_lda import LdaLoader
 from label_vectorizer import LabelVectorizer
@@ -95,9 +99,35 @@ def test_provider():
 
     return pos_provider
 
+def samples_to_matrix(samples):
+    X_list = []
+    y_list = []
+
+    for sample in samples:
+        feature_vec = sparse.hstack([sample.tfidf, sample.lda, sample.glove])
+        X_list.append(feature_vec)
+        y_list.append(sample.label)
+
+    X = sparse.vstack(X_list)
+    y = np.array(y_list)
+
+    return X, y
+
+def batch(gen, batch_size):
+    exhausted = False
+    while not exhausted:
+        res = []
+        while len(res) < batch_size:
+            try:
+                res.append(next(gen))
+            except StopIteration:
+                exhausted = True
+                break
+
+        yield res
 
 
-def train():
+def train_setup():
     vocab = load_pickled('vocab.dat')
     tfidf = TfIdf(vocab, ['./data/train_pos_small.txt', './data/train_neg_small.txt'])
     lda = LdaLoader('topics.lda', 200)
@@ -107,22 +137,70 @@ def train():
     pos_provider = TrainingSampleProvider('./data/train_pos_small.txt', 1, vocab, tfidf, lda, label_vectorizer, stemmer)
     neg_provider = TrainingSampleProvider('./data/train_neg_small.txt', -1, vocab, tfidf, lda, label_vectorizer, stemmer)
 
-    merged = SampleMerger(pos_provider, neg_provider).samples()
-
-    svm = LASVM(1, 0.05)
-
-    seed = [next(merged) for _ in range(0, 20)]
-
-    svm.seed_support_vecs(seed)
-
-    svm.update(merged)
+    merged = SampleMerger(pos_provider, neg_provider)
 
     validation_provider = ValidationSampleProvider('./data/test_data.txt', None, vocab, tfidf, lda, label_vectorizer, stemmer)
+
+    return merged, validation_provider
+
+
+def train_sgd():
+    training, validation = train_setup()
+
+    sgd = SGDClassifier(
+            loss='hinge',
+            penalty='l2',
+            fit_intercept=True,
+            n_iter=1,
+            shuffle=False,
+            n_jobs=-1)
+
+    batch_size = 128
+
+    classes = np.array([1, -1])
+
+    for sample_batch in batch(training.samples(), batch_size):
+        X, y = samples_to_matrix(sample_batch)
+
+        sgd.partial_fit(X, y, classes)
 
     count = 1
     with open('submission.csv', 'w', encoding='utf-8') as f:
         f.write('Id,Prediction\n')
-        for sample in validation_provider.samples():
+
+        for validation_batch in batch(validation.samples(), batch_size):
+
+            X, _ = samples_to_matrix(validation_batch)
+
+            preds = sgd.predict(X)
+
+            for pred in preds:
+                if pred < 0:
+                    f.write(str(count) + ',' + '-1\n')
+                else:
+                    f.write(str(count) + ',' + '1\n')
+
+                count = count + 1
+
+
+def train_lasvm():
+
+    training, validation = train_setup()
+
+    training_samples = training.samples()
+
+    svm = LASVM(1, 0.05)
+
+    seed = [next(training_samples) for _ in range(0, 20)]
+
+    svm.seed_support_vecs(seed)
+
+    svm.update(training_samples)
+
+    count = 1
+    with open('submission.csv', 'w', encoding='utf-8') as f:
+        f.write('Id,Prediction\n')
+        for sample in validation.samples():
             pred = svm.predict(sample)
             if pred < 0:
                 f.write(str(count) + ',' + '-1\n')
@@ -132,4 +210,4 @@ def train():
             count = count + 1
 
 if __name__ == "__main__":
-    train()
+    train_sgd()
