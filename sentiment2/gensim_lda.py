@@ -7,6 +7,8 @@ from gensim.models.ldamodel import LdaModel
 
 import numpy as np
 
+from scipy import sparse
+
 from preprocess import MemoizedStemmer, load_pickled
 
 class TweetCorpus(gensim.corpora.textcorpus.TextCorpus):
@@ -49,12 +51,30 @@ class LdaLoader(object):
     def topic_vector(self, word_ids):
         topic_mix = self.lda[list_to_bow(word_ids)]
 
-        res = np.zeros(self.num_topics)
+        rows = []
+        cols = []
+        data = []
 
         for ix, val in topic_mix:
-            res[ix] = val
+            rows.append(0)
+            cols.append(ix)
+            data.append(val)
 
-        return res
+        v = sparse.coo_matrix((data, (rows, cols)), shape=(1, self.num_topics))
+        v.sum_duplicates()
+
+        return v.tocsr()
+
+
+    #def topic_vector(self, word_ids):
+    #    topic_mix = self.lda[list_to_bow(word_ids)]
+
+    #    res = np.zeros(self.num_topics)
+
+    #    for ix, val in topic_mix:
+    #        res[ix] = val
+
+    #    return res
 
 def main(vocab_file, inv_vocab_file, infiles):
     vocab = load_pickled(vocab_file)

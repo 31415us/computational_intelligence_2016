@@ -87,7 +87,7 @@ class SampleMerger(object):
 def test_provider():
     vocab = load_pickled('vocab.dat')
     tfidf = TfIdf(vocab, ['./data/train_pos_small.txt', './data/train_neg_small.txt'])
-    lda = LdaLoader('topics.lda')
+    lda = LdaLoader('topics.lda', 200)
     label_vectorizer = LabelVectorizer(load_pickled('labels.dat'))
     stemmer = MemoizedStemmer()
 

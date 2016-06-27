@@ -12,8 +12,8 @@ class Sample(object):
 
     def kernel(self, b):
         tfidfdot = np.dot(self.tfidf.todense(), b.tfidf.todense().T)
-        ldadot = np.dot(self.lda, b.lda)
-        glovedot = np.dot(self.glove, b.glove)
+        ldadot = np.dot(self.lda.todense(), b.lda.todense().T)
+        glovedot = np.dot(self.glove.todense(), b.glove.todense().T)
 
         return tfidfdot + ldadot + glovedot
 
