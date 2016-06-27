@@ -14,13 +14,13 @@ class LabelVectorizer(object):
         cols = []
         data = []
 
-        norm = 1 / len(word_list)
-
-        for w_id in word_list:
-            label = self.labels[w_id]
-            rows.append(0)
-            cols.append(label)
-            data.append(norm)
+        if len(word_list) is not 0:
+            norm = 1 / len(word_list)
+            for w_id in word_list:
+                label = self.labels[w_id]
+                rows.append(0)
+                cols.append(label)
+                data.append(norm)
 
         v = sparse.coo_matrix((data, (rows, cols)), shape=(1, self.dim))
         v.sum_duplicates()
