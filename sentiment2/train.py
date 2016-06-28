@@ -2,6 +2,7 @@
 import numpy as np
 
 from sklearn.linear_model import SGDClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
 from scipy import sparse
 
@@ -90,12 +91,12 @@ class SampleMerger(object):
 
 def test_provider():
     vocab = load_pickled('vocab.dat')
-    tfidf = TfIdf(vocab, ['./data/train_pos_small.txt', './data/train_neg_small.txt'])
+    tfidf = TfIdf(vocab, ['./data/train_pos.txt', './data/train_neg.txt'])
     lda = LdaLoader('topics.lda', 200)
     label_vectorizer = LabelVectorizer(load_pickled('labels.dat'))
     stemmer = MemoizedStemmer()
 
-    pos_provider = TrainingSampleProvider('./data/train_pos_small.txt', 1, vocab, tfidf, lda, label_vectorizer, stemmer)
+    pos_provider = TrainingSampleProvider('./data/train_pos.txt', 1, vocab, tfidf, lda, label_vectorizer, stemmer)
 
     return pos_provider
 
@@ -129,19 +130,49 @@ def batch(gen, batch_size):
 
 def train_setup():
     vocab = load_pickled('vocab.dat')
-    tfidf = TfIdf(vocab, ['./data/train_pos_small.txt', './data/train_neg_small.txt'])
+    tfidf = TfIdf(vocab, ['./data/train_pos.txt', './data/train_neg.txt'])
     lda = LdaLoader('topics.lda', 200)
     label_vectorizer = LabelVectorizer(load_pickled('labels.dat'))
     stemmer = MemoizedStemmer()
 
-    pos_provider = TrainingSampleProvider('./data/train_pos_small.txt', 1, vocab, tfidf, lda, label_vectorizer, stemmer)
-    neg_provider = TrainingSampleProvider('./data/train_neg_small.txt', -1, vocab, tfidf, lda, label_vectorizer, stemmer)
+    pos_provider = TrainingSampleProvider('./data/train_pos.txt', 1, vocab, tfidf, lda, label_vectorizer, stemmer)
+    neg_provider = TrainingSampleProvider('./data/train_neg.txt', -1, vocab, tfidf, lda, label_vectorizer, stemmer)
 
     merged = SampleMerger(pos_provider, neg_provider)
 
     validation_provider = ValidationSampleProvider('./data/test_data.txt', None, vocab, tfidf, lda, label_vectorizer, stemmer)
 
     return merged, validation_provider
+
+def train_xgb():
+    train, valid = train_setup()
+
+    xgb = GradientBoostingClassifier(
+            loss='deviance',
+            n_estimators=10000,
+            max_depth=5,
+            subsample=1.0,
+            verbose=1)
+
+    X, y = samples_to_matrix(train.samples())
+
+    xgb.fit(X, y)
+
+    Xv, _ = samples_to_matrix(valid.samples())
+
+    preds = xgb.predict(Xv)
+
+    count = 1
+    with open('submission.csv', 'w', encoding='utf-8') as f:
+        f.write('Id,Prediction\n')
+
+        for pred in preds:
+            if pred < 0:
+                f.write(str(count) + ',' + '-1\n')
+            else:
+                f.write(str(count) + ',' + '1\n')
+
+            count = count + 1
 
 
 def train_sgd():
@@ -210,4 +241,4 @@ def train_lasvm():
             count = count + 1
 
 if __name__ == "__main__":
-    train_sgd()
+    train_xgb()
