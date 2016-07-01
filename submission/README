@@ -1,0 +1,17 @@
+
+All non standard library dependencies are listed in the file
+'requirements.txt'
+
+The subfolder 'data' contains training data, test data and additional data
+needed for training
+
+Once all dependencies are installed you can simply run 'run.py' and it will
+recreate our 'submission.csv', no additional setup required
+
+the subfolder 'cnn' contains the code we used for the convolutional neural
+network. It is not runnable out of the box and only there for documentation
+purposes.
+As mentioned in the main paper the convolutional neural net code is based on:
+https://github.com/dennybritz/cnn-text-classification-tf
+and the accompanying blog post:
+http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/
