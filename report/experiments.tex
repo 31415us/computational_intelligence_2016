@@ -8,7 +8,7 @@ the positive and half to the negative class. The validation set consists of
 $10000$ unlabeled tweets.
 
 We used the whole training data set to build the
-vocabulary, compute \textit{LDA}~\cite{LDA} and \textit{GloVe}~\cite{glove} vectors and train the 
+vocabulary, compute \textit{GloVe}~\cite{glove} vectors and train the 
 convolutional neural network but only used $100000$ samples of each class to
 train the ensemble classifiers.
 
@@ -30,9 +30,8 @@ rarely.
         CNN & $76.76$\% \\
         tfidf & $81.5$\% \\
         GloVe cluster histograms & $61.74$\% \\
-        LDA topic mixtures & $72.68$\% \\
-        tfidf \& LDA \& clusters & $81.86$\% \\
-        tfidf \& LDA \& clusters\footnotemark{} & $82.22$\% \\
+        tfidf \& clusters & $81.86$\% \\
+        tfidf \& clusters\footnotemark{} & $82.22$\% \\
     \end{tabular}
     \caption{Different Models Evaluated On The Kaggle Public Leaderboard}\label{tab:res}
 \end{table}
@@ -41,9 +40,9 @@ rarely.
 \Cref{tab:res} shows the classification accuracy of the different models on the
 validation set as reported by the public leaderboard of the Kaggle competition.
 
-We can clearly see that neither the LDA mixtures nor the GloVe cluster histograms
-bring a significant improvement over the simple tfidf features. Moreover they
-perform significantly worse when used on their own.
+We can clearly see that the GloVe cluster histograms bring no significant
+improvement over the simple tfidf features. Moreover they perform significantly
+worse when used on their own.
 
 Surprisingly the convolutional neural network performs worse than the tfidf model
 as well.
