@@ -1,5 +1,6 @@
 
-\documentclass[a4paper, 11pt]{article}
+%\documentclass[a4paper, 11pt, twocolumn, notitlepage]{article}
+\documentclass[a4paper, 11pt, notitlepage]{article}
 
 \usepackage{amsmath}
 \usepackage{amsthm}
@@ -8,7 +9,11 @@
 \usepackage{cite}
 \usepackage{cleveref}
 
-\title{Title}
+\usepackage{url}
+
+\usepackage{graphicx}
+
+\title{Computational Intelligence Lab:\\Sentiment Analysis Project}
 \author{Teymur Babayev babayevt@student.ethz.ch \and Michels Kaporins miselsk@student.ethz.ch \and Pius von D\"aniken piusv@student.ethz.ch \\
 Team: greentshirt \\
 Department of Computer Science, ETH Z\"urich, Switzerland
@@ -20,7 +25,19 @@ Department of Computer Science, ETH Z\"urich, Switzerland
 
 \maketitle
 
-\include{introduction}
+\begin{abstract}
+    \textit{GloVe} and similar word embeddings are useful to measure semantic
+    similarities on the word level. We try to create sentence level features
+    based on a clustering of word vectors and test whether they can help
+    improve the accuracy on a text classification task. We find that this is not
+    the case.
+\end{abstract}
+
+\input{introduction}
+
+\input{models}
+
+\input{experiments}
 
 \bibliography{refs}
 \bibliographystyle{plain}

@@ -1,2 +1,35 @@
 
 \section{Introduction}
+
+\subsection{Sentiment Analysis}
+
+In sentiment analysis we want to extract subjective information from text. It is
+usually formulated as a text classification task where we want to distinguish
+text sections by the attitude of the speaker or author. A sentence like
+\textit{Just got my midterm and I'm impressed!} might be categorized as `positive'
+whereas \textit{Exams are coming soon.} might be considered `negative'.
+
+For our application we try to classify tweets into `positive' and `negative'
+categories based on whether the contain a happy (`:)') or sad (`:(') smiley.
+
+Real time sentiment analysis of social media posts in general can be particularly
+useful for public relations and marketing purposes as it can provide insight into
+customer satisfaction and related metrics.
+
+\subsection{Baselines}
+
+Most modern state of the art text classification systems are based on convolutional
+neural networks. We will use a simple convolutional neural network similar to
+the one presented in~\cite{cnn14} as a baseline for comparison.
+
+As a second baseline we use a traditional feature based classifier. We extract
+tfidf (term frequency-inverse document frequency) features from the tweets
+and train a tree ensemble classifier using gradient boosting~\cite{gradBoost}.
+
+\subsection{Contribution}
+
+For our main contribution we extract additional features based on a clustering
+of the vector space embedding of the words in a tweet. We first compute global
+vectors~\cite{glove} for the words in our dataset and use simple k-means to cluster them.  
+Additionally we will also train a LDA model~\cite{LDA} and use the resulting
+topic mixture vectors as features.

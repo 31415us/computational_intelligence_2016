@@ -1,0 +1,56 @@
+
+\section{Experiments}
+
+\subsection{Dataset}
+
+The dataset consists of a total of $2.5$ million tweets of which half belong to
+the positive and half to the negative class. The validation set consists of
+$10000$ unlabeled tweets.
+
+We used the whole training data set to build the
+vocabulary, compute \textit{LDA}~\cite{LDA} and \textit{GloVe}~\cite{glove} vectors and train the 
+convolutional neural network but only used $100000$ samples of each class to
+train the ensemble classifiers.
+
+\subsection{Preprocessing}
+
+To prepare the data we first compute a mapping from words to integer ids. This
+allows us to operate on sequences of integers instead of sequences of strings.
+In order to reduce the size of the vocabulary we remove stopwords using a list
+of stopwords. Furthermore we stem all words and filter words that only appear
+rarely.
+
+\subsection{Results}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{l r}
+        Method & Classification Accuracy in \% \\
+        \hline
+        CNN & $76.76$\% \\
+        tfidf & $81.5$\% \\
+        GloVe cluster histograms & $61.74$\% \\
+        LDA topic mixtures & $72.68$\% \\
+        tfidf \& LDA \& clusters & $81.86$\% \\
+        tfidf \& LDA \& clusters\footnotemark{} & $82.22$\% \\
+    \end{tabular}
+    \caption{Different Models Evaluated On The Kaggle Public Leaderboard}\label{tab:res}
+\end{table}
+\footnotetext{using the same features but $3000$ instead of $1000$ trees in the ensemble} 
+
+\Cref{tab:res} shows the classification accuracy of the different models on the
+validation set as reported by the public leaderboard of the Kaggle competition.
+
+We can clearly see that neither the LDA mixtures nor the GloVe cluster histograms
+bring a significant improvement over the simple tfidf features. Moreover they
+perform significantly worse when used on their own.
+
+Surprisingly the convolutional neural network performs worse than the tfidf model
+as well.
+
+A possible reason for the cluster histogram features to perform this badly is that
+a lot of important antonyms fall into the same cluster. For example the words
+`happy', `sad', `good', `bad', `excited' tend to consistently fall into the
+same cluster. Increasing the number of clusters does not help since even when
+we increase the number of clusters to $1000$ usually less than $100$ contain
+more than a single word.
