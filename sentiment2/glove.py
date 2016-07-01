@@ -45,7 +45,7 @@ def main():
 
     glove = GloVe(cooc)
 
-    for epoch_num in range(0, 5):
+    for epoch_num in range(0, 10):
         print("start epoch " + str(epoch_num))
         glove.training_run()
 
